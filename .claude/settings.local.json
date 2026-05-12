@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p public)",
+      "Bash(mv hero:*)",
+      "Bash(mv play-area:*)",
+      "Bash(mv swimming:*)",
+      "Bash(mv sky-to-walking:*)",
+      "Bash(npm install:*)"
+    ]
+  }
+}

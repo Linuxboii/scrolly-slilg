@@ -1,0 +1,605 @@
+/* globals.css — Design system for the luxury scrollytelling experience.
+   Everything is intentional. Nothing is decorative noise.
+   Typography, color, and motion work as a unified language. */
+
+/* ─── Google Fonts ──────────────────────────────────────────────────────────── */
+/* Loaded via next/font in layout.jsx for optimal subsetting and performance.
+   Variables injected here for global use. */
+
+/* ─── CSS Custom Properties — Design Tokens ────────────────────────────────── */
+:root {
+  /* Color: dark luxury palette.
+     Near-blacks use warm undertones to feel rich, not cold. */
+  --color-void:       #080808;    /* deepest background */
+  --color-deep:       #0d0d0d;    /* section backgrounds */
+  --color-mist:       #161616;    /* subtle surface elevation */
+  --color-smoke:      #272727;    /* borders, dividers */
+  --color-silver:     #8a8a8a;    /* secondary text, labels */
+  --color-pearl:      #e0ddd8;    /* primary text — warm white, never pure #fff */
+  --color-ivory:      #f2efe8;    /* headline text — slightly warmer */
+  --color-gold-mist:  #c4a062;    /* accent — warm gold, used SPARINGLY */
+  --color-glow:       rgba(196, 160, 98, 0.07);  /* light leak base tint */
+
+  /* Typography scale: fluid type using clamp() */
+  --text-micro:       0.65rem;    /* 10px — labels, badges */
+  --text-eyebrow:     0.7rem;     /* 11px — section eyebrows */
+  --text-body:        1rem;       /* 16px */
+  --text-headline:    clamp(2.2rem, 5.5vw, 4.5rem);
+  --text-display:     clamp(3rem, 8vw, 7rem);
+
+  /* Letter spacing */
+  --track-eyebrow:    0.35em;
+  --track-microcopy:  0.25em;
+
+  /* Transitions (for UI elements only — NOT for scroll-driven animations) */
+  --ease-luxury:      cubic-bezier(0.25, 0.1, 0.1, 1.0);
+  --ease-reveal:      cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout */
+  --section-height:   100vh;
+}
+
+/* ─── Reset & Base ──────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  /* Disable native smooth scroll — Lenis takes over completely */
+  scroll-behavior: auto;
+  background: var(--color-void);
+}
+
+body {
+  background: var(--color-void);
+  color: var(--color-pearl);
+  font-family: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
+  font-weight: 300;
+  line-height: 1.6;
+  /* Prevent content from being selectable while dragging to scroll */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Overflow: Lenis manages scroll. Do not hide overflow on html/body. */
+  overflow-x: hidden;
+}
+
+/* ─── Typography ────────────────────────────────────────────────────────────── */
+.font-display {
+  font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-label {
+  font-family: var(--font-jost), 'Jost', sans-serif;
+}
+
+/* Section overlay text — shared structure across all sections */
+.text-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 max(4vw, 2rem) max(6vh, 2.5rem);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.text-eyebrow {
+  font-family: var(--font-jost), 'Jost', sans-serif;
+  font-size: var(--text-eyebrow);
+  font-weight: 300;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-gold-mist);
+  margin-bottom: 0.75rem;
+}
+
+.text-headline {
+  font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
+  font-size: var(--text-headline);
+  font-weight: 600;
+  line-height: 1.08;
+  color: var(--color-ivory);
+  letter-spacing: -0.01em;
+}
+
+.text-display {
+  font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
+  font-size: var(--text-display);
+  font-weight: 600;
+  line-height: 1.0;
+  color: var(--color-ivory);
+  letter-spacing: -0.02em;
+}
+
+.text-microcopy {
+  font-family: var(--font-jost), 'Jost', sans-serif;
+  font-size: clamp(1.1rem, 2.5vw, 1.8rem);
+  font-weight: 200;
+  letter-spacing: var(--track-microcopy);
+  text-transform: uppercase;
+  color: var(--color-pearl);
+}
+
+/* Word-by-word reveal spans */
+.word-reveal {
+  display: inline-block;
+  opacity: 0;
+  /* Each word initialized invisible; GSAP stagger drives opacity to 1 */
+}
+
+/* ─── Canvas sections ───────────────────────────────────────────────────────── */
+.sequence-section {
+  position: relative;
+  width: 100%;
+  height: var(--section-height);
+  overflow: hidden;
+  background: var(--color-void);
+}
+
+.sequence-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* object-fit: cover behavior achieved via drawImage() in canvas renderer */
+  display: block;
+}
+
+/* Canvas wrapper — scale transform applied here for zoom effects */
+.canvas-wrapper {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+/* ─── Overlays ──────────────────────────────────────────────────────────────── */
+
+/* Fog / vignette overlay for hero section */
+.fog-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: radial-gradient(
+    ellipse 70% 60% at 30% 75%,
+    rgba(196, 160, 98, 0.06),
+    transparent 70%
+  );
+  /* Vignette edges */
+  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.5);
+}
+
+/* Water glow for swimming section */
+.water-glow {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  pointer-events: none;
+  z-index: 5;
+  background: linear-gradient(
+    to top,
+    rgba(100, 160, 200, 0.08),
+    transparent
+  );
+  opacity: 0;
+}
+
+/* Light leak for sky-to-walking section */
+.light-leak {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: linear-gradient(
+    135deg,
+    transparent 20%,
+    rgba(196, 160, 98, 0.10) 50%,
+    transparent 80%
+  );
+  transform: translateX(-100%);
+  will-change: transform;
+}
+
+/* Atmospheric haze at top edge */
+.atmos-haze {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 20%;
+  pointer-events: none;
+  z-index: 5;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.35),
+    transparent
+  );
+}
+
+/* Section-exit fade-to-black overlay */
+.exit-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  background: var(--color-void);
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* Gradient wipe between sections */
+.gradient-wipe {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+  background: linear-gradient(
+    to bottom,
+    var(--color-void) 0%,
+    transparent 100%
+  );
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* ─── Section info panel (bottom-right contextual text) ─────────────────────── */
+/* Static — not GSAP animated. Provides descriptive context for each section. */
+.section-info {
+  position: absolute;
+  bottom: max(3rem, 5vh);
+  right: max(2.5rem, 4vw);
+  z-index: 15;
+  max-width: 280px;
+  text-align: right;
+  pointer-events: none;
+  /* Dark gradient backing so text is legible over any frame */
+  background: radial-gradient(
+    ellipse 120% 140% at 100% 100%,
+    rgba(0, 0, 0, 0.55) 0%,
+    transparent 75%
+  );
+  padding: 2rem 0 0 3rem;
+}
+
+.section-info-label {
+  display: block;
+  font-family: var(--font-jost), 'Jost', sans-serif;
+  font-size: var(--text-micro);
+  font-weight: 200;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-gold-mist);
+  margin-bottom: 0.6rem;
+}
+
+.section-info-body {
+  font-family: var(--font-jost), 'Jost', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 300;
+  line-height: 1.75;
+  color: var(--color-silver);
+}
+
+.section-info-price {
+  font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: var(--color-gold-mist);
+  margin-top: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Noise grain overlay ───────────────────────────────────────────────────── */
+/* Fixed, full-screen texture that runs at all times.
+   mix-blend-mode: overlay preserves the image colors beneath.
+   opacity 0.03 is the sweet spot: visible as texture without muddying images. */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0.032;
+  mix-blend-mode: overlay;
+  /* Inline SVG turbulence filter — zero external HTTP requests */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  animation: grain-shift 0.12s steps(1) infinite;
+  will-change: background-position;
+}
+
+@keyframes grain-shift {
+  0%   { background-position:   0%   0% }
+  14%  { background-position: -10%  -5% }
+  28%  { background-position:   5% -15% }
+  42%  { background-position: -15%  10% }
+  57%  { background-position:  10%   5% }
+  71%  { background-position:  -5%  15% }
+  85%  { background-position:  15%  -8% }
+  100% { background-position:   0%   0% }
+}
+
+/* ─── Loading screen ────────────────────────────────────────────────────────── */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--color-void);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  transition: opacity 0.8s var(--ease-luxury), visibility 0.8s;
+}
+
+.loading-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loading-bar-track {
+  width: min(240px, 60vw);
+  height: 1px;
+  background: var(--color-smoke);
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--color-gold-mist);
+  transition: width 0.3s var(--ease-luxury);
+}
+
+.loading-label {
+  font-family: var(--font-jost), 'Jost', sans-serif;
+  font-size: var(--text-eyebrow);
+  font-weight: 200;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-silver);
+}
+
+/* ─── Footer ────────────────────────────────────────────────────────────────── */
+.site-footer {
+  background: rgba(8, 8, 8, 0.97);
+  padding: clamp(4rem, 8vh, 7rem) max(4vw, 2rem);
+  border-top: 1px solid var(--color-smoke);
+  /* Footer starts blurred; GSAP reveals it as sky-walking section exits */
+  filter: blur(16px);
+  opacity: 0;
+  will-change: filter, opacity;
+}
+
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 4rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .footer-inner {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+}
+
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.footer-wordmark {
+  font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  color: var(--color-ivory);
+  line-height: 1;
+}
+
+.footer-tagline {
+  font-family: var(--font-jost), 'Jost', sans-serif;
+  font-size: var(--text-eyebrow);
+  font-weight: 200;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-gold-mist);
+}
+
+.footer-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  text-align: right;
+}
+
+.footer-descriptor {
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: var(--color-silver);
+  line-height: 1.7;
+  max-width: 28ch;
+  margin-top: 0.25rem;
+}
+
+/* Location column */
+.footer-location {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.footer-section-label {
+  font-family: var(--font-jost), 'Jost', sans-serif;
+  font-size: var(--text-micro);
+  font-weight: 200;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-gold-mist);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.footer-landmark-list {
+  list-style: none;
+  font-size: 0.78rem;
+  font-weight: 300;
+  color: var(--color-silver);
+  line-height: 1.9;
+}
+
+/* Specs column */
+.footer-specs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.footer-spec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 1rem;
+}
+
+.footer-spec-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--color-smoke);
+}
+
+.footer-spec-row dt {
+  font-family: var(--font-jost), 'Jost', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 200;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-silver);
+}
+
+.footer-spec-row dd {
+  font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: var(--color-pearl);
+  text-align: right;
+}
+
+.footer-spec-price dd {
+  font-size: 1.25rem;
+  color: var(--color-gold-mist);
+}
+
+.footer-spec-price sup {
+  font-size: 0.65rem;
+  vertical-align: super;
+  color: var(--color-silver);
+}
+
+.footer-disclaimer {
+  font-size: 0.65rem;
+  font-weight: 200;
+  letter-spacing: 0.05em;
+  color: var(--color-smoke);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.footer-address {
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: var(--color-silver);
+  line-height: 1.7;
+}
+
+.footer-copy {
+  font-size: 0.7rem;
+  font-weight: 200;
+  letter-spacing: 0.1em;
+  color: var(--color-smoke);
+  text-transform: uppercase;
+}
+
+/* ─── Microcopy text (play-area section) ────────────────────────────────────── */
+.microcopy-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.microcopy-word {
+  position: absolute;
+  font-family: var(--font-jost), 'Jost', sans-serif;
+  font-size: clamp(1.4rem, 3.5vw, 2.8rem);
+  font-weight: 600;
+  letter-spacing: var(--track-microcopy);
+  text-transform: uppercase;
+  color: var(--color-ivory);
+  opacity: 0;
+  filter: blur(10px);
+  will-change: opacity, filter, transform;
+}
+
+/* ─── Particle canvas (swimming section) ────────────────────────────────────── */
+.particle-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 8;
+  opacity: 0.6;
+}
+
+/* ─── Utilities ─────────────────────────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* Disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .noise-overlay { animation: none; }
+  * { transition-duration: 0.01ms !important; }
+}
+
+/* ─── Mobile adjustments ────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .footer-inner {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .footer-meta {
+    text-align: left;
+  }
+
+  .text-overlay {
+    padding: 0 1.25rem 2rem;
+  }
+}
