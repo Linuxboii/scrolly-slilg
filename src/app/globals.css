@@ -93,25 +93,31 @@ body {
   letter-spacing: var(--track-eyebrow);
   text-transform: uppercase;
   color: var(--color-gold-mist);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.9rem;
+  text-shadow: 0 1px 20px rgba(0, 0, 0, 0.9);
+  will-change: opacity, transform;
 }
 
 .text-headline {
   font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
   font-size: var(--text-headline);
   font-weight: 600;
-  line-height: 1.08;
+  line-height: 1.05;
   color: var(--color-ivory);
   letter-spacing: -0.01em;
+  text-shadow: 0 2px 40px rgba(0, 0, 0, 0.85), 0 0 80px rgba(0, 0, 0, 0.4);
+  will-change: opacity, transform;
 }
 
 .text-display {
   font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
   font-size: var(--text-display);
   font-weight: 600;
-  line-height: 1.0;
+  line-height: 0.96;
   color: var(--color-ivory);
   letter-spacing: -0.02em;
+  text-shadow: 0 4px 60px rgba(0, 0, 0, 0.9), 0 0 120px rgba(0, 0, 0, 0.5);
+  will-change: opacity, transform;
 }
 
 .text-microcopy {
@@ -121,12 +127,15 @@ body {
   letter-spacing: var(--track-microcopy);
   text-transform: uppercase;
   color: var(--color-pearl);
+  text-shadow: 0 1px 20px rgba(0, 0, 0, 0.8);
 }
 
 /* Word-by-word reveal spans */
 .word-reveal {
   display: inline-block;
   opacity: 0;
+  text-shadow: 0 4px 60px rgba(0, 0, 0, 0.9), 0 0 120px rgba(0, 0, 0, 0.5);
+  will-change: opacity, transform;
   /* Each word initialized invisible; GSAP stagger drives opacity to 1 */
 }
 
@@ -248,52 +257,6 @@ body {
   will-change: opacity;
 }
 
-/* ─── Section info panel (bottom-right contextual text) ─────────────────────── */
-/* Static — not GSAP animated. Provides descriptive context for each section. */
-.section-info {
-  position: absolute;
-  bottom: max(3rem, 5vh);
-  right: max(2.5rem, 4vw);
-  z-index: 15;
-  max-width: 280px;
-  text-align: right;
-  pointer-events: none;
-  /* Dark gradient backing so text is legible over any frame */
-  background: radial-gradient(
-    ellipse 120% 140% at 100% 100%,
-    rgba(0, 0, 0, 0.55) 0%,
-    transparent 75%
-  );
-  padding: 2rem 0 0 3rem;
-}
-
-.section-info-label {
-  display: block;
-  font-family: var(--font-jost), 'Jost', sans-serif;
-  font-size: var(--text-micro);
-  font-weight: 200;
-  letter-spacing: var(--track-eyebrow);
-  text-transform: uppercase;
-  color: var(--color-gold-mist);
-  margin-bottom: 0.6rem;
-}
-
-.section-info-body {
-  font-family: var(--font-jost), 'Jost', sans-serif;
-  font-size: 0.75rem;
-  font-weight: 300;
-  line-height: 1.75;
-  color: var(--color-silver);
-}
-
-.section-info-price {
-  font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
-  font-size: 1.2rem;
-  font-weight: 400;
-  color: var(--color-gold-mist);
-  margin-top: 0.75rem;
-  letter-spacing: 0.02em;
-}
 
 /* ─── Noise grain overlay ───────────────────────────────────────────────────── */
 /* Fixed, full-screen texture that runs at all times.
@@ -368,6 +331,79 @@ body {
   color: var(--color-silver);
 }
 
+/* ─── Footer CTA ────────────────────────────────────────────────────────────── */
+.footer-cta {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-bottom: clamp(3rem, 6vh, 5rem);
+  border-bottom: 1px solid var(--color-smoke);
+  margin-bottom: clamp(3rem, 6vh, 5rem);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 3rem;
+  flex-wrap: wrap;
+}
+
+.footer-cta-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.footer-cta-headline {
+  font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
+  font-size: clamp(2.8rem, 6vw, 5rem);
+  font-weight: 300;
+  line-height: 0.95;
+  color: var(--color-ivory);
+  letter-spacing: -0.02em;
+}
+
+.footer-cta-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.footer-contact-link {
+  font-family: var(--font-jost), 'Jost', sans-serif;
+  font-size: clamp(0.85rem, 1.5vw, 1.05rem);
+  font-weight: 300;
+  color: var(--color-pearl);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--color-smoke);
+  padding-bottom: 3px;
+  transition: color 0.25s, border-color 0.25s;
+}
+
+.footer-contact-link:hover {
+  color: var(--color-gold-mist);
+  border-color: var(--color-gold-mist);
+}
+
+.footer-contact-note {
+  font-family: var(--font-jost), 'Jost', sans-serif;
+  font-size: var(--text-micro);
+  font-weight: 200;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-smoke);
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 767px) {
+  .footer-cta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .footer-cta-right {
+    align-items: flex-start;
+  }
+}
+
 /* ─── Footer ────────────────────────────────────────────────────────────────── */
 .site-footer {
   background: rgba(8, 8, 8, 0.97);
@@ -416,6 +452,23 @@ body {
   font-weight: 200;
   letter-spacing: var(--track-eyebrow);
   text-transform: uppercase;
+  color: var(--color-gold-mist);
+}
+
+.footer-social {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.footer-social-link {
+  color: var(--color-silver);
+  transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.footer-social-link:hover {
   color: var(--color-gold-mist);
 }
 
@@ -549,13 +602,14 @@ body {
 .microcopy-word {
   position: absolute;
   font-family: var(--font-jost), 'Jost', sans-serif;
-  font-size: clamp(1.4rem, 3.5vw, 2.8rem);
+  font-size: clamp(2rem, 5vw, 4rem);
   font-weight: 600;
   letter-spacing: var(--track-microcopy);
   text-transform: uppercase;
   color: var(--color-ivory);
   opacity: 0;
   filter: blur(10px);
+  text-shadow: 0 2px 40px rgba(0, 0, 0, 0.8);
   will-change: opacity, filter, transform;
 }
 
@@ -586,6 +640,64 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .noise-overlay { animation: none; }
   * { transition-duration: 0.01ms !important; }
+}
+
+/* ─── Custom Cursor ─────────────────────────────────────────────────────────── */
+/* Hide native cursor site-wide (touch devices: cursor: none is ignored) */
+html, body, a, button, input, textarea, label, [data-cursor-hover] {
+  cursor: none !important;
+}
+
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  border-radius: 50%;
+  opacity: 0;            /* hidden until first mousemove */
+  will-change: transform;
+  /* GPU-only, no paint on move */
+}
+
+/* Dot — small, crisp, exact position */
+.cursor-dot {
+  width: 5px;
+  height: 5px;
+  background: var(--color-ivory);
+  mix-blend-mode: difference;
+  transition: opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
+}
+
+/* Ring — larger, lags via rAF lerp */
+.cursor-ring {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(224, 221, 216, 0.45);
+  background: transparent;
+  transition: opacity 0.2s ease, width 0.25s var(--ease-luxury), height 0.25s var(--ease-luxury), background 0.25s ease, border-color 0.25s ease;
+}
+
+/* Hover state — ring expands, fills with subtle gold tint, dot hides */
+.cursor-ring--hover {
+  width: 60px;
+  height: 60px;
+  border-color: var(--color-gold-mist);
+  background: rgba(196, 160, 98, 0.08);
+}
+
+.cursor-dot--hover {
+  width: 3px;
+  height: 3px;
+  opacity: 0.3;
+}
+
+/* Reduced motion: disable cursor transitions, keep positioning */
+@media (prefers-reduced-motion: reduce) {
+  .cursor-dot, .cursor-ring {
+    transition: opacity 0.2s ease;
+  }
 }
 
 /* ─── Mobile adjustments ────────────────────────────────────────────────────── */

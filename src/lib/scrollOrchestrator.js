@@ -1,12 +1,13 @@
 // scrollOrchestrator.js — GSAP + Lenis wiring for all scroll-driven animations.
-// Plain JS module (not a React hook). Initialized once in page.jsx after sections mount.
 //
 // Architecture:
 // - Lenis owns smooth scrolling; feeds into ScrollTrigger.update on every tick
-// - Per-section ScrollTrigger for frame progression (onUpdate → setFrame)
-// - Separate text animation timelines scrubbed by their own ScrollTrigger instances
-// - All text animations use ease: 'none' — any easing causes drift during scrub
-// - Returns a single cleanup function to kill all triggers and destroy Lenis
+// - ONE ScrollTrigger per section handles BOTH frame progression AND text animation
+//   (text was previously in separate triggers which fired at wrong positions due to
+//    pin-spacer insertion changing the DOM before text triggers calculated their start)
+// - Text uses onEnter/onLeave/onUpdate callbacks — plays at GSAP speed (not scrub lag)
+// - Overlays (fog, glow, light-leak, haze, exit) use separate scrub timelines (visual FX only)
+// - Returns a single cleanup function
 
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -15,14 +16,46 @@ import { SECTIONS } from '@/config/sections'
 
 gsap.registerPlugin(ScrollTrigger)
 
-/**
- * Initialize scroll orchestration for all sections.
- *
- * @param {Array<{ current: object }>} sectionRefs
- *   Each ref.current exposes: { el, setFrame, ...domRefs }
- * @param {{ current: HTMLElement }>} footerRef
- * @returns {() => void} cleanup
- */
+// ─── Text animation helpers ───────────────────────────────────────────────────
+
+function initText(els) {
+  const elements = [].concat(els).filter(Boolean)
+  if (!elements.length) return
+  gsap.set(elements, { opacity: 0, y: 55, filter: 'blur(6px)' })
+}
+
+function textIn(els, opts = {}) {
+  const elements = [].concat(els).filter(Boolean)
+  if (!elements.length) return
+  gsap.killTweensOf(elements)
+  gsap.to(elements, {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    duration: 0.55,
+    ease: 'power3.out',
+    stagger: 0.09,
+    ...opts,
+  })
+}
+
+function textOut(els, dir = -1, opts = {}) {
+  const elements = [].concat(els).filter(Boolean)
+  if (!elements.length) return
+  gsap.killTweensOf(elements)
+  gsap.to(elements, {
+    opacity: 0,
+    y: dir * 40,
+    filter: 'blur(5px)',
+    duration: 0.3,
+    ease: 'power2.in',
+    stagger: 0.04,
+    ...opts,
+  })
+}
+
+// ─── Main orchestrator ────────────────────────────────────────────────────────
+
 export function initScrollOrchestrator(sectionRefs, footerRef) {
   // ─── Lenis smooth scrolling ────────────────────────────────────────────────
   const lenis = new Lenis({
@@ -30,24 +63,15 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
     easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
     orientation: 'vertical',
     smoothWheel: true,
-    // 0.6 = each wheel tick moves 60% of normal distance — cinematic pace
     wheelMultiplier: 0.6,
     smoothTouch: true,
     touchMultiplier: 0.8,
   })
 
-  // Critical Lenis + ScrollTrigger integration:
-  // Lenis fires scroll events with its smooth position; ScrollTrigger must
-  // use that position — NOT the native window.scrollY — or they desync.
   lenis.on('scroll', ScrollTrigger.update)
 
-  // Feed Lenis into GSAP's RAF. GSAP runs at ~60fps; Lenis.raf() expects ms.
-  // Store reference so we can remove it exactly on cleanup (reference equality).
   const lenisTickerCallback = (time) => lenis.raf(time * 1000)
   gsap.ticker.add(lenisTickerCallback)
-
-  // Disable GSAP's lag smoothing — it introduces frame-skip compensation that
-  // fights Lenis's own smoothing and causes stuttery playback.
   gsap.ticker.lagSmoothing(0)
 
   const allTriggers = []
@@ -55,7 +79,10 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
   // ─── Section 0: Hero ────────────────────────────────────────────────────────
   const hero = sectionRefs[0]?.current
   if (hero?.el) {
-    // Frame progression trigger
+    initText([hero.eyebrowEl, hero.headlineEl])
+
+    const h = { textIn: false }
+
     allTriggers.push(
       ScrollTrigger.create({
         trigger: hero.el,
@@ -64,42 +91,42 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
         pin: true,
         pinSpacing: true,
         scrub: SECTIONS[0].scrub,
+        onEnter: () => {
+          h.textIn = true
+          textIn([hero.eyebrowEl, hero.headlineEl])
+        },
+        onLeave: () => {
+          h.textIn = false
+          textOut([hero.eyebrowEl, hero.headlineEl], -1)
+          const next = sectionRefs[1]?.current?.el
+          if (next) lenis.scrollTo(next, { immediate: true })
+        },
+        onEnterBack: () => {
+          h.textIn = true
+          textIn([hero.eyebrowEl, hero.headlineEl])
+        },
+        onLeaveBack: () => {
+          h.textIn = false
+          textOut([hero.eyebrowEl, hero.headlineEl], 1)
+        },
         onUpdate: (self) => {
-          const frame = Math.floor(self.progress * (SECTIONS[0].frameCount - 1))
+          const p = self.progress
+          const frame = Math.floor(p * (SECTIONS[0].frameCount - 1))
           hero.setFrame(frame)
+
+          // Exit text at 72% of pin
+          if (p > 0.72 && h.textIn) {
+            h.textIn = false
+            textOut([hero.eyebrowEl, hero.headlineEl], -1)
+          } else if (p < 0.65 && !h.textIn && p > 0.02) {
+            h.textIn = true
+            textIn([hero.eyebrowEl, hero.headlineEl])
+          }
         },
       })
     )
 
-    // Text animation: blast in from below → long hold → punch out upward
-    if (hero.eyebrowEl && hero.headlineEl) {
-      const heroTextTl = gsap.timeline({ paused: true })
-      // 0.00 – 0.14: blast up from y:120
-      heroTextTl.fromTo(
-        [hero.eyebrowEl, hero.headlineEl],
-        { opacity: 0, y: 120 },
-        { opacity: 1, y: 0, duration: 0.14, ease: 'none', stagger: 0.06 }
-      )
-      // 0.14 – 0.68: implicit hold (user scrolls through ~3+ steps seeing text)
-      // 0.68 – 0.84: punch out upward fast
-      heroTextTl.to(
-        [hero.eyebrowEl, hero.headlineEl],
-        { opacity: 0, y: -120, duration: 0.14, ease: 'none', stagger: 0.04 },
-        0.68
-      )
-
-      allTriggers.push(
-        ScrollTrigger.create({
-          trigger: hero.el,
-          start: 'top top',
-          end: `+=${SECTIONS[0].pinDuration}`,
-          scrub: SECTIONS[0].scrub,
-          animation: heroTextTl,
-        })
-      )
-    }
-
-    // Fog overlay: fades in subtly, holds, then fades out
+    // Fog overlay — visual FX only, stays on cinematic scrub
     if (hero.fogEl) {
       const fogTl = gsap.timeline({ paused: true })
       fogTl
@@ -122,7 +149,12 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
   // ─── Section 1: Play Area ───────────────────────────────────────────────────
   const play = sectionRefs[1]?.current
   if (play?.el) {
-    // Frame progression
+    initText([play.eyebrowEl, ...(play.wordEls || [])])
+
+    const microcopyConfig = SECTIONS[1].textOverlays
+    const wordActive = [false, false, false]
+    let playEyebrowOut = false
+
     allTriggers.push(
       ScrollTrigger.create({
         trigger: play.el,
@@ -131,14 +163,69 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
         pin: true,
         pinSpacing: true,
         scrub: SECTIONS[1].scrub,
+        onEnter: () => {
+          playEyebrowOut = false
+          textIn(play.eyebrowEl, { delay: 0.15 })
+        },
+        onLeave: () => {
+          playEyebrowOut = true
+          textOut([play.eyebrowEl, ...(play.wordEls || [])], -1)
+          wordActive.fill(false)
+          const next = sectionRefs[2]?.current?.el
+          if (next) lenis.scrollTo(next, { immediate: true })
+        },
+        onEnterBack: () => {
+          playEyebrowOut = false
+          textIn(play.eyebrowEl)
+        },
+        onLeaveBack: () => {
+          textOut([play.eyebrowEl, ...(play.wordEls || [])], 1)
+          wordActive.fill(false)
+        },
         onUpdate: (self) => {
-          const frame = Math.floor(self.progress * (SECTIONS[1].frameCount - 1))
+          const p = self.progress
+          const frame = Math.floor(p * (SECTIONS[1].frameCount - 1))
           play.setFrame(frame)
+
+          // Eyebrow exit at 88%
+          if (p > 0.88 && !playEyebrowOut) {
+            playEyebrowOut = true
+            textOut(play.eyebrowEl, -1)
+          } else if (p < 0.82 && playEyebrowOut && p > 0) {
+            playEyebrowOut = false
+            textIn(play.eyebrowEl)
+          }
+
+          // Microcopy words — each appears in its progress window
+          play.wordEls?.forEach((wordEl, i) => {
+            if (!wordEl) return
+            const center = microcopyConfig[i].triggerProgress
+            const half = 0.14
+            const inRange = p >= center - half && p <= center + half
+
+            if (inRange && !wordActive[i]) {
+              wordActive[i] = true
+              gsap.killTweensOf(wordEl)
+              gsap.set(wordEl, { opacity: 0, y: 50, filter: 'blur(8px)' })
+              gsap.to(wordEl, {
+                opacity: 1, y: 0, filter: 'blur(0px)',
+                duration: 0.5, ease: 'power3.out',
+              })
+            } else if (!inRange && wordActive[i]) {
+              wordActive[i] = false
+              const dir = p > center ? -1 : 1
+              gsap.killTweensOf(wordEl)
+              gsap.to(wordEl, {
+                opacity: 0, y: dir * 38, filter: 'blur(6px)',
+                duration: 0.3, ease: 'power2.in',
+              })
+            }
+          })
         },
       })
     )
 
-    // Zoom: canvas wrapper scales 1 → 1.08 over full section
+    // Zoom — canvas wrapper scales for depth
     if (play.canvasWrapperEl) {
       const zoomTl = gsap.timeline({ paused: true })
       zoomTl.fromTo(
@@ -156,51 +243,19 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
         })
       )
     }
-
-    // Microcopy words: each has a ~15% scroll window centered at triggerProgress
-    const microcopyConfig = SECTIONS[1].textOverlays
-    const sectionEl = play.el
-
-    play.wordEls?.forEach((wordEl, i) => {
-      if (!wordEl) return
-      const center = microcopyConfig[i].triggerProgress
-      const half = 0.14 // 28% window per word — user gets ~3 scroll steps of hold
-      const pinDurVh = parseInt(SECTIONS[1].pinDuration)
-
-      const startPct = `${Math.max(0, center - half) * 100}%`
-      const endPct = `${Math.min(1, center + half) * 100}%`
-
-      // Blast in from below, long hold, punch out upward
-      const wordTl = gsap.timeline({ paused: true })
-      wordTl
-        .fromTo(
-          wordEl,
-          { opacity: 0, y: 80, filter: 'blur(8px)' },
-          { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.25, ease: 'none' }
-        )
-        // hold: 0.25 – 0.75 (half the window is pure hold)
-        .to(
-          wordEl,
-          { opacity: 0, y: -80, filter: 'blur(8px)', duration: 0.25, ease: 'none' },
-          0.75
-        )
-
-      allTriggers.push(
-        ScrollTrigger.create({
-          trigger: sectionEl,
-          start: `top+=${parseFloat(startPct) / 100 * pinDurVh * window.innerHeight / 100} top`,
-          end: `top+=${parseFloat(endPct) / 100 * pinDurVh * window.innerHeight / 100} top`,
-          scrub: SECTIONS[1].scrub,
-          animation: wordTl,
-        })
-      )
-    })
   }
 
   // ─── Section 2: Swimming ────────────────────────────────────────────────────
   const swim = sectionRefs[2]?.current
   if (swim?.el) {
-    // Frame progression
+    const wordEls = swim.wordEls?.filter(Boolean) || []
+    initText([swim.eyebrowEl, ...wordEls])
+
+    // Word entry thresholds (staggered scroll checkpoints)
+    const wordThresholds = [0.08, 0.20, 0.32]
+    const wordActive = new Array(wordEls.length).fill(false)
+    let swimTextExited = false
+
     allTriggers.push(
       ScrollTrigger.create({
         trigger: swim.el,
@@ -209,55 +264,79 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
         pin: true,
         pinSpacing: true,
         scrub: SECTIONS[2].scrub,
+        onEnter: () => {
+          swimTextExited = false
+          textIn(swim.eyebrowEl, { delay: 0.1 })
+        },
+        onLeave: () => {
+          swimTextExited = true
+          textOut([swim.eyebrowEl, ...wordEls], -1)
+          wordActive.fill(false)
+          const next = sectionRefs[3]?.current?.el
+          if (next) lenis.scrollTo(next, { immediate: true })
+        },
+        onEnterBack: () => {
+          swimTextExited = false
+          // Restore anything that was visible at current progress on next onUpdate tick
+        },
+        onLeaveBack: () => {
+          swimTextExited = true
+          textOut([swim.eyebrowEl, ...wordEls], 1)
+          wordActive.fill(false)
+        },
         onUpdate: (self) => {
-          const frame = Math.floor(self.progress * (SECTIONS[2].frameCount - 1))
+          const p = self.progress
+          const frame = Math.floor(p * (SECTIONS[2].frameCount - 1))
           swim.setFrame(frame)
+
+          // Eyebrow in/out
+          if (p < 0.05 && !swimTextExited) {
+            textIn(swim.eyebrowEl)
+          }
+
+          // Words appear at thresholds, all exit together at 75%
+          if (p < 0.75 && !swimTextExited) {
+            wordEls.forEach((wordEl, i) => {
+              if (!wordEl) return
+              const threshold = wordThresholds[i] ?? 0.1
+
+              if (p >= threshold && !wordActive[i]) {
+                wordActive[i] = true
+                gsap.killTweensOf(wordEl)
+                gsap.set(wordEl, { opacity: 0, y: 55, filter: 'blur(8px)' })
+                gsap.to(wordEl, {
+                  opacity: 1, y: 0, filter: 'blur(0px)',
+                  duration: 0.55, ease: 'power3.out',
+                })
+              } else if (p < threshold - 0.04 && wordActive[i]) {
+                wordActive[i] = false
+                gsap.killTweensOf(wordEl)
+                gsap.to(wordEl, {
+                  opacity: 0, y: 50, filter: 'blur(8px)',
+                  duration: 0.3, ease: 'power2.in',
+                })
+              }
+            })
+          }
+
+          // Group exit at 75%
+          if (p > 0.75 && !swimTextExited) {
+            swimTextExited = true
+            textOut([swim.eyebrowEl, ...wordEls], -1)
+            wordActive.fill(false)
+          } else if (p < 0.70 && swimTextExited && p > 0.02) {
+            swimTextExited = false
+          }
         },
       })
     )
 
-    // Word-by-word: each blasts up staggered → long hold → all punch out together
-    const wordEls = swim.wordEls?.filter(Boolean)
-    if (wordEls?.length) {
-      const wordTl = gsap.timeline({ paused: true })
-      // 0.00 – 0.30: words fly in one by one from y:100
-      wordTl.fromTo(
-        wordEls,
-        { opacity: 0, y: 100 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.18,
-          ease: 'none',
-          stagger: { each: 0.08, from: 'start' },
-        }
-      )
-      // 0.30 – 0.72: hold (user reads comfortably through multiple scroll steps)
-      // 0.72 – 0.88: all words punch upward and out together
-      wordTl.to(
-        wordEls,
-        { opacity: 0, y: -100, duration: 0.16, ease: 'none' },
-        0.72
-      )
-
-      allTriggers.push(
-        ScrollTrigger.create({
-          trigger: swim.el,
-          start: 'top top',
-          end: `+=${SECTIONS[2].pinDuration}`,
-          scrub: SECTIONS[2].scrub,
-          animation: wordTl,
-        })
-      )
-    }
-
-    // Water glow: pulses opacity at section midpoint
+    // Water glow
     if (swim.waterGlowEl) {
       const glowTl = gsap.timeline({ paused: true })
       glowTl
         .to(swim.waterGlowEl, { opacity: 1, duration: 0.4, ease: 'none' })
         .to(swim.waterGlowEl, { opacity: 0.5, duration: 0.6, ease: 'none' })
-
       allTriggers.push(
         ScrollTrigger.create({
           trigger: swim.el,
@@ -273,7 +352,10 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
   // ─── Section 3: Sky-Walking ─────────────────────────────────────────────────
   const sky = sectionRefs[3]?.current
   if (sky?.el) {
-    // Frame progression (slowest scrub for extended cinematic feel)
+    initText([sky.eyebrowEl, sky.headline1El, sky.headline2El])
+
+    const skyState = { eyebrow: false, h1: false, h2: false }
+
     allTriggers.push(
       ScrollTrigger.create({
         trigger: sky.el,
@@ -282,75 +364,75 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
         pin: true,
         pinSpacing: true,
         scrub: SECTIONS[3].scrub,
+        onEnter: () => {
+          skyState.eyebrow = true
+          skyState.h1 = true
+          textIn([sky.eyebrowEl], { delay: 0.1 })
+          textIn([sky.headline1El], { delay: 0.25 })
+        },
+        onLeave: () => {
+          Object.keys(skyState).forEach(k => { skyState[k] = false })
+          textOut([sky.eyebrowEl, sky.headline1El, sky.headline2El], -1)
+          // Snap to footer — no dead scroll zone between last frame and footer
+          if (footerRef?.current) {
+            lenis.scrollTo(footerRef.current, { immediate: true })
+          }
+        },
+        onEnterBack: () => {
+          // Reset to h1 visible state
+          skyState.h1 = true
+          skyState.eyebrow = true
+          skyState.h2 = false
+          gsap.set([sky.headline2El], { opacity: 0, y: 55 })
+          textIn([sky.eyebrowEl, sky.headline1El])
+        },
+        onLeaveBack: () => {
+          Object.keys(skyState).forEach(k => { skyState[k] = false })
+          textOut([sky.eyebrowEl, sky.headline1El, sky.headline2El], 1)
+        },
         onUpdate: (self) => {
-          const frame = Math.floor(self.progress * (SECTIONS[3].frameCount - 1))
+          const p = self.progress
+          const frame = Math.floor(p * (SECTIONS[3].frameCount - 1))
           sky.setFrame(frame)
+
+          // Eyebrow: visible 0.01 – 0.38
+          if (p > 0.38 && skyState.eyebrow) {
+            skyState.eyebrow = false
+            textOut(sky.eyebrowEl, -1)
+          } else if (p < 0.33 && !skyState.eyebrow && p > 0.01) {
+            skyState.eyebrow = true
+            textIn(sky.eyebrowEl)
+          }
+
+          // H1 "Every Path": visible 0.01 – 0.44
+          if (p > 0.44 && skyState.h1) {
+            skyState.h1 = false
+            textOut(sky.headline1El, -1)
+          } else if (p < 0.38 && !skyState.h1 && p > 0.01) {
+            skyState.h1 = true
+            textIn(sky.headline1El)
+          }
+
+          // H2 "Leads Home": visible 0.54 – 0.90
+          if (p >= 0.54 && p <= 0.90 && !skyState.h2) {
+            skyState.h2 = true
+            textIn(sky.headline2El, { delay: 0.1 })
+          } else if ((p < 0.50 || p > 0.93) && skyState.h2) {
+            skyState.h2 = false
+            textOut(sky.headline2El, p > 0.90 ? -1 : 1)
+          }
         },
       })
     )
 
-    // Headline 1: "Every Path" — blasts in, holds through ~40% of scroll, punches out
-    if (sky.headline1El) {
-      const h1Tl = gsap.timeline({ paused: true })
-      // fly in: 0.00 – 0.12
-      h1Tl.fromTo(
-        sky.headline1El,
-        { opacity: 0, y: 120 },
-        { opacity: 1, y: 0, duration: 0.12, ease: 'none' }
-      )
-      // hold: 0.12 – 0.40 (user scrolls 3+ steps reading it)
-      // punch out: 0.40 – 0.54
-      h1Tl.to(
-        sky.headline1El,
-        { opacity: 0, y: -120, duration: 0.14, ease: 'none' },
-        0.40
-      )
-
-      allTriggers.push(
-        ScrollTrigger.create({
-          trigger: sky.el,
-          start: 'top top',
-          end: `+=${SECTIONS[3].pinDuration}`,
-          scrub: SECTIONS[3].scrub,
-          animation: h1Tl,
-        })
-      )
-    }
-
-    // Headline 2: "Leads Home" — waits for h1 to clear, then blasts in, holds, punches out
-    if (sky.headline2El) {
-      const h2Tl = gsap.timeline({ paused: true })
-      h2Tl
-        // hold invisible until h1 is gone: 0.00 – 0.55
-        .set(sky.headline2El, { opacity: 0, y: 120 })
-        .to(sky.headline2El, { opacity: 0, y: 120, duration: 0.55, ease: 'none' })
-        // fly in: 0.55 – 0.67
-        .to(sky.headline2El, { opacity: 1, y: 0, duration: 0.12, ease: 'none' })
-        // hold: 0.67 – 0.87 (another 2+ scroll steps)
-        .to(sky.headline2El, { opacity: 1, y: 0, duration: 0.20, ease: 'none' })
-        // punch out: 0.87 – 1.00
-        .to(sky.headline2El, { opacity: 0, y: -120, duration: 0.13, ease: 'none' })
-
-      allTriggers.push(
-        ScrollTrigger.create({
-          trigger: sky.el,
-          start: 'top top',
-          end: `+=${SECTIONS[3].pinDuration}`,
-          scrub: SECTIONS[3].scrub,
-          animation: h2Tl,
-        })
-      )
-    }
-
-    // Light leak: sweeps right → left between progress 0.5–0.75
+    // Light leak
     if (sky.lightLeakEl) {
       const leakTl = gsap.timeline({ paused: true })
       leakTl
         .set(sky.lightLeakEl, { x: '100%', opacity: 0 })
-        .to(sky.lightLeakEl, { opacity: 0, duration: 0.5, ease: 'none' }) // invisible first half
+        .to(sky.lightLeakEl, { opacity: 0, duration: 0.5, ease: 'none' })
         .to(sky.lightLeakEl, { opacity: 1, x: '0%', duration: 0.12, ease: 'none' })
         .to(sky.lightLeakEl, { opacity: 0, x: '-100%', duration: 0.13, ease: 'none' })
-
       allTriggers.push(
         ScrollTrigger.create({
           trigger: sky.el,
@@ -362,12 +444,10 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
       )
     }
 
-    // Atmospheric haze: visible at start (aerial view), fades out by mid-scroll
+    // Atmospheric haze
     if (sky.hazeEl) {
       const hazeTl = gsap.timeline({ paused: true })
-      hazeTl
-        .fromTo(sky.hazeEl, { opacity: 1 }, { opacity: 0, duration: 0.5, ease: 'none' })
-
+      hazeTl.fromTo(sky.hazeEl, { opacity: 1 }, { opacity: 0, duration: 0.5, ease: 'none' })
       allTriggers.push(
         ScrollTrigger.create({
           trigger: sky.el,
@@ -379,14 +459,13 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
       )
     }
 
-    // Exit overlay: section fades to black in final 10% of scroll
+    // Exit overlay
     if (sky.exitOverlayEl) {
       const exitTl = gsap.timeline({ paused: true })
       exitTl
         .set(sky.exitOverlayEl, { opacity: 0 })
-        .to(sky.exitOverlayEl, { opacity: 0, duration: 0.9, ease: 'none' })  // hold transparent
-        .to(sky.exitOverlayEl, { opacity: 1, duration: 0.1, ease: 'none' })  // fast black fade
-
+        .to(sky.exitOverlayEl, { opacity: 0, duration: 0.9, ease: 'none' })
+        .to(sky.exitOverlayEl, { opacity: 1, duration: 0.1, ease: 'none' })
       allTriggers.push(
         ScrollTrigger.create({
           trigger: sky.el,
@@ -400,24 +479,26 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
   }
 
   // ─── Footer reveal ─────────────────────────────────────────────────────────
-  // The footer starts blurred + invisible (set in globals.css).
-  // Reveal triggers as the last pinned section exits.
+  // Trigger starts when footer top hits bottom of viewport (100%) so the
+  // reveal fires immediately on snap-scroll from the sky section.
   if (footerRef?.current) {
     allTriggers.push(
       ScrollTrigger.create({
         trigger: footerRef.current,
-        start: 'top 90%',
-        end: 'top 40%',
-        scrub: 1.5,
+        start: 'top 100%',
+        end: 'top 30%',
+        scrub: 1,
         onUpdate: (self) => {
           const p = self.progress
-          // Drive filter + opacity via inline style for GPU-composited animation
           footerRef.current.style.filter = `blur(${(1 - p) * 16}px)`
           footerRef.current.style.opacity = p.toString()
         },
       })
     )
   }
+
+  // Force recalculate all trigger positions after full setup
+  ScrollTrigger.refresh()
 
   // ─── Cleanup ───────────────────────────────────────────────────────────────
   return () => {

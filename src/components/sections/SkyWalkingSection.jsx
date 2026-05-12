@@ -15,6 +15,7 @@ const config = SECTIONS[3]
 
 const SkyWalkingSection = forwardRef(function SkyWalkingSection({ onSetFrame }, ref) {
   const sectionRef = useRef(null)
+  const eyebrowRef = useRef(null)     // "Connected Living"
   const headline1Ref = useRef(null)   // "Every Path"
   const headline2Ref = useRef(null)   // "Leads Home"
   const lightLeakRef = useRef(null)
@@ -28,6 +29,7 @@ const SkyWalkingSection = forwardRef(function SkyWalkingSection({ onSetFrame }, 
 
   useImperativeHandle(ref, () => ({
     el: sectionRef.current,
+    eyebrowEl: eyebrowRef.current,
     headline1El: headline1Ref.current,
     headline2El: headline2Ref.current,
     lightLeakEl: lightLeakRef.current,
@@ -44,6 +46,7 @@ const SkyWalkingSection = forwardRef(function SkyWalkingSection({ onSetFrame }, 
     if (ref && 'current' in ref) {
       ref.current = {
         el: sectionRef.current,
+        eyebrowEl: eyebrowRef.current,
         headline1El: headline1Ref.current,
         headline2El: headline2Ref.current,
         lightLeakEl: lightLeakRef.current,
@@ -72,12 +75,15 @@ const SkyWalkingSection = forwardRef(function SkyWalkingSection({ onSetFrame }, 
       {/* Light leak: sweeps across the frame between seq. midpoint frames */}
       <div ref={lightLeakRef} className="light-leak" aria-hidden="true" />
 
-      {/* Typography: two headlines, sequential reveal/fade */}
-      {/* "Every Path" — appears early, fades before midpoint */}
+      {/* Typography: eyebrow + two sequential headlines */}
+      {/* "Connected Living" eyebrow + "Every Path" — appears early, fades before midpoint */}
       <div
         className="text-overlay"
         style={{ justifyContent: 'flex-end', alignItems: 'flex-start' }}
       >
+        <span ref={eyebrowRef} className="text-eyebrow" style={{ opacity: 0, marginBottom: '1rem' }}>
+          Connected Living
+        </span>
         <h2
           ref={headline1Ref}
           className="text-display"
@@ -99,15 +105,6 @@ const SkyWalkingSection = forwardRef(function SkyWalkingSection({ onSetFrame }, 
         >
           Leads Home
         </h2>
-      </div>
-
-      {/* Static connected living info */}
-      <div className="section-info">
-        <span className="section-info-label">Connected Living</span>
-        <p className="section-info-body">
-          2365 – 3105 sft homes with East &amp; West facings — tree-lined walkways
-          and open sky corridors that connect every residence to a larger world.
-        </p>
       </div>
 
       {/* Exit overlay: fades to black as section exits, merges with footer */}

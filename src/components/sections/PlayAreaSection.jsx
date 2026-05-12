@@ -16,6 +16,7 @@ const config = SECTIONS[1]
 const PlayAreaSection = forwardRef(function PlayAreaSection({ onSetFrame }, ref) {
   const sectionRef = useRef(null)
   const canvasWrapperRef = useRef(null)
+  const eyebrowRef = useRef(null) // "World-Class Amenities"
 
   // Individual refs for each microcopy word
   const word0Ref = useRef(null) // "Movement"
@@ -30,6 +31,7 @@ const PlayAreaSection = forwardRef(function PlayAreaSection({ onSetFrame }, ref)
   useImperativeHandle(ref, () => ({
     el: sectionRef.current,
     canvasWrapperEl: canvasWrapperRef.current,
+    eyebrowEl: eyebrowRef.current,
     wordEls: [word0Ref.current, word1Ref.current, word2Ref.current],
     setFrame,
   }))
@@ -43,6 +45,7 @@ const PlayAreaSection = forwardRef(function PlayAreaSection({ onSetFrame }, ref)
       ref.current = {
         el: sectionRef.current,
         canvasWrapperEl: canvasWrapperRef.current,
+        eyebrowEl: eyebrowRef.current,
         wordEls: [word0Ref.current, word1Ref.current, word2Ref.current],
         setFrame,
       }
@@ -61,6 +64,13 @@ const PlayAreaSection = forwardRef(function PlayAreaSection({ onSetFrame }, ref)
         <canvas ref={canvasRef} className="sequence-canvas" />
       </div>
 
+      {/* Eyebrow: flies in with pin start */}
+      <div className="text-overlay" style={{ justifyContent: 'flex-end' }}>
+        <span ref={eyebrowRef} className="text-eyebrow" style={{ opacity: 0 }}>
+          World-Class Amenities
+        </span>
+      </div>
+
       {/* Microcopy words: each positioned center, animated independently */}
       <div className="microcopy-container">
         <span ref={word0Ref} className="microcopy-word">Movement</span>
@@ -68,14 +78,6 @@ const PlayAreaSection = forwardRef(function PlayAreaSection({ onSetFrame }, ref)
         <span ref={word2Ref} className="microcopy-word">Belonging</span>
       </div>
 
-      {/* Static amenities info */}
-      <div className="section-info">
-        <span className="section-info-label">World-Class Amenities</span>
-        <p className="section-info-body">
-          Championship badminton courts, a dedicated children's play zone, and open
-          community lawns — spaces where every generation feels at home.
-        </p>
-      </div>
     </section>
   )
 })

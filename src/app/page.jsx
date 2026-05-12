@@ -24,6 +24,7 @@ import SkyWalkingSection from '@/components/sections/SkyWalkingSection'
 import Footer from '@/components/Footer'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 import NoiseOverlay from '@/components/ui/NoiseOverlay'
+import CustomCursor from '@/components/ui/CustomCursor'
 
 export default function Home() {
   // Each section ref exposes: { el, setFrame, ...domRefs }
@@ -105,6 +106,9 @@ export default function Home() {
 
       {/* Film grain — fixed, always on top */}
       <NoiseOverlay />
+
+      {/* Custom cursor — dot + lagged ring, gold hover state */}
+      <CustomCursor />
 
       {/* Scroll sections */}
       <HeroSection

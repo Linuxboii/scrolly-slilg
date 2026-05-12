@@ -81,6 +81,7 @@ const SwimmingSection = forwardRef(function SwimmingSection({ onSetFrame }, ref)
   const sectionRef = useRef(null)
   const waterGlowRef = useRef(null)
   const particleCanvasRef = useRef(null)
+  const eyebrowRef = useRef(null) // "Wellness & Leisure"
   const headlineRef = useRef(null)
   // Individual word refs for staggered GSAP animation
   const wordRefs = useRef(HEADLINE_WORDS.map(() => ({ current: null })))
@@ -93,6 +94,7 @@ const SwimmingSection = forwardRef(function SwimmingSection({ onSetFrame }, ref)
   useImperativeHandle(ref, () => ({
     el: sectionRef.current,
     waterGlowEl: waterGlowRef.current,
+    eyebrowEl: eyebrowRef.current,
     headlineEl: headlineRef.current,
     wordEls: wordRefs.current.map(r => r.current),
     setFrame,
@@ -107,6 +109,7 @@ const SwimmingSection = forwardRef(function SwimmingSection({ onSetFrame }, ref)
       ref.current = {
         el: sectionRef.current,
         waterGlowEl: waterGlowRef.current,
+        eyebrowEl: eyebrowRef.current,
         headlineEl: headlineRef.current,
         wordEls: wordRefs.current.map(r => r.current),
         setFrame,
@@ -143,17 +146,11 @@ const SwimmingSection = forwardRef(function SwimmingSection({ onSetFrame }, ref)
         aria-hidden="true"
       />
 
-      {/* Static wellness info */}
-      <div className="section-info">
-        <span className="section-info-label">Wellness &amp; Leisure</span>
-        <p className="section-info-body">
-          A resort-style pool set within lush landscaping — where mornings begin
-          at the water's edge and architecture opens to open sky.
-        </p>
-      </div>
-
-      {/* Word-by-word headline */}
+      {/* Word-by-word headline + eyebrow */}
       <div className="text-overlay" style={{ justifyContent: 'center', alignItems: 'center', paddingBottom: 0 }}>
+        <span ref={eyebrowRef} className="text-eyebrow" style={{ opacity: 0, textAlign: 'center', marginBottom: '1.25rem' }}>
+          Wellness &amp; Leisure
+        </span>
         <h2
           ref={headlineRef}
           className="text-headline"

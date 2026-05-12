@@ -75,15 +75,6 @@ const HeroSection = forwardRef(function HeroSection({ onSetFrame }, ref) {
         </h1>
       </div>
 
-      {/* Static project info — bottom right, always visible */}
-      <div className="section-info">
-        <span className="section-info-label">Khajaguda &amp; Puppalaguda, Hyderabad</span>
-        <p className="section-info-body">
-          Premium residences set in Manilonda's most connected address —
-          near Delhi Public School, Oakridge International, ORR, and Lanco Hills.
-        </p>
-        <p className="section-info-price">From ₹2.3 Cr*</p>
-      </div>
     </section>
   )
 })
