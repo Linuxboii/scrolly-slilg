@@ -8,10 +8,10 @@ export const SECTIONS = [
     // pinDuration: how much scroll distance is consumed while section is pinned
     pinDuration: '280vh',
     // basePath: prepended to zero-padded frame number + ".jpg"
-    basePath: '/hero/ezgif-frame-',
+    basePath: 'https://sli-lg-jpegs.avlokai.com/hero/ezgif-frame-',
     transition: 'fade-in', // initial dark-to-content fade on page load
     // scrub: GSAP scrub lag in seconds. Lower = more responsive, higher = more cinematic
-    scrub: 0.8,
+    scrub: 0.3,
     textOverlays: [
       {
         text: 'Crafted Spaces',
@@ -32,9 +32,9 @@ export const SECTIONS = [
     id: 'play-area',
     frameCount: 120,
     pinDuration: '250vh',
-    basePath: '/play-area/ezgif-frame-',
+    basePath: 'https://sli-lg-jpegs.avlokai.com/play-area/ezgif-frame-',
     transition: 'hard-cut',
-    scrub: 0.8,
+    scrub: 0.3,
     textOverlays: [
       // triggerProgress: center of the visibility window for each microcopy word
       { text: 'Movement',  role: 'microcopy', triggerProgress: 0.2 },
@@ -46,9 +46,9 @@ export const SECTIONS = [
     id: 'swimming',
     frameCount: 120,
     pinDuration: '260vh',
-    basePath: '/swimming/ezgif-frame-',
+    basePath: 'https://sli-lg-jpegs.avlokai.com/swimming/ezgif-frame-',
     transition: 'gradient-wipe',
-    scrub: 1,
+    scrub: 0.4,
     textOverlays: [
       // role: 'headline-wordbyword' → split into spans, staggered opacity reveal
       { text: 'Where Architecture Breathes', role: 'headline-wordbyword' },
@@ -58,10 +58,10 @@ export const SECTIONS = [
     id: 'sky-walking',
     frameCount: 120,
     pinDuration: '340vh',
-    basePath: '/sky-to-walking/ezgif-frame-',
+    basePath: 'https://sli-lg-jpegs.avlokai.com/sky-to-walking/ezgif-frame-',
     transition: 'fade',
     // Slowest scrub — sky-to-walking is the most cinematic section
-    scrub: 2,
+    scrub: 0.8,
     textOverlays: [
       { text: 'Every Path', role: 'headline', fadeStart: 0.1, fadeEnd: 0.45 },
       { text: 'Leads Home', role: 'headline', fadeStart: 0.5,  fadeEnd: 0.9 },

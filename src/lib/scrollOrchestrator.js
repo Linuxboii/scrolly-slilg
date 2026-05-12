@@ -16,6 +16,37 @@ import { SECTIONS } from '@/config/sections'
 
 gsap.registerPlugin(ScrollTrigger)
 
+// ─── Section transition helper ───────────────────────────────────────────────
+// Fade to black → instant scroll → fade back in. Hides the jump entirely.
+
+function snapWithTransition(lenis, targetEl) {
+  if (!targetEl) return
+
+  const overlay = document.createElement('div')
+  overlay.style.cssText = [
+    'position:fixed', 'inset:0', 'background:#080808',
+    'opacity:0', 'z-index:9998', 'pointer-events:none',
+    'will-change:opacity',
+  ].join(';')
+  document.body.appendChild(overlay)
+
+  gsap.to(overlay, {
+    opacity: 1,
+    duration: 0.38,
+    ease: 'power2.in',
+    onComplete: () => {
+      lenis.scrollTo(targetEl, { immediate: true })
+      gsap.to(overlay, {
+        opacity: 0,
+        duration: 0.52,
+        ease: 'power2.out',
+        delay: 0.04,
+        onComplete: () => overlay.remove(),
+      })
+    },
+  })
+}
+
 // ─── Text animation helpers ───────────────────────────────────────────────────
 
 function initText(els) {
@@ -59,13 +90,13 @@ function textOut(els, dir = -1, opts = {}) {
 export function initScrollOrchestrator(sectionRefs, footerRef) {
   // ─── Lenis smooth scrolling ────────────────────────────────────────────────
   const lenis = new Lenis({
-    duration: 1.6,
+    duration: 0.9,
     easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
     orientation: 'vertical',
     smoothWheel: true,
-    wheelMultiplier: 0.6,
+    wheelMultiplier: 0.85,
     smoothTouch: true,
-    touchMultiplier: 0.8,
+    touchMultiplier: 1.0,
   })
 
   lenis.on('scroll', ScrollTrigger.update)
@@ -99,7 +130,7 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
           h.textIn = false
           textOut([hero.eyebrowEl, hero.headlineEl], -1)
           const next = sectionRefs[1]?.current?.el
-          if (next) lenis.scrollTo(next, { immediate: true })
+          if (next) snapWithTransition(lenis, next)
         },
         onEnterBack: () => {
           h.textIn = true
@@ -172,7 +203,7 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
           textOut([play.eyebrowEl, ...(play.wordEls || [])], -1)
           wordActive.fill(false)
           const next = sectionRefs[2]?.current?.el
-          if (next) lenis.scrollTo(next, { immediate: true })
+          if (next) snapWithTransition(lenis, next)
         },
         onEnterBack: () => {
           playEyebrowOut = false
@@ -273,7 +304,7 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
           textOut([swim.eyebrowEl, ...wordEls], -1)
           wordActive.fill(false)
           const next = sectionRefs[3]?.current?.el
-          if (next) lenis.scrollTo(next, { immediate: true })
+          if (next) snapWithTransition(lenis, next)
         },
         onEnterBack: () => {
           swimTextExited = false
@@ -375,7 +406,7 @@ export function initScrollOrchestrator(sectionRefs, footerRef) {
           textOut([sky.eyebrowEl, sky.headline1El, sky.headline2El], -1)
           // Snap to footer — no dead scroll zone between last frame and footer
           if (footerRef?.current) {
-            lenis.scrollTo(footerRef.current, { immediate: true })
+            snapWithTransition(lenis, footerRef.current)
           }
         },
         onEnterBack: () => {

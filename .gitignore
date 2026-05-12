@@ -1,1 +1,10 @@
 node_modules/
+.next/
+out/
+
+# Image sequence frames — too large for deployment, served from CDN
+public/hero/
+public/play-area/
+public/swimming/
+public/sky-to-walking/
+public
