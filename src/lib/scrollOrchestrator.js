@@ -90,11 +90,13 @@ function textOut(els, dir = -1, opts = {}) {
 export function initScrollOrchestrator(sectionRefs, footerRef) {
   // ─── Lenis smooth scrolling ────────────────────────────────────────────────
   const lenis = new Lenis({
-    duration: 0.9,
-    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    // lerp mode (per-frame smoothing) instead of duration (time-based easing).
+    // Constant smoothing regardless of scroll velocity — no stutter when user
+    // outruns the duration-based easing curve. 0.08 ≈ ~12 frames to settle.
+    lerp: 0.08,
     orientation: 'vertical',
     smoothWheel: true,
-    wheelMultiplier: 0.85,
+    wheelMultiplier: 0.7,
     smoothTouch: true,
     touchMultiplier: 1.0,
   })

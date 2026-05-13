@@ -11,7 +11,7 @@ export const SECTIONS = [
     basePath: 'https://sli-lg-jpegs.avlokai.com/hero/ezgif-frame-',
     transition: 'fade-in', // initial dark-to-content fade on page load
     // scrub: GSAP scrub lag in seconds. Lower = more responsive, higher = more cinematic
-    scrub: 0.3,
+    scrub: 0.25,
     textOverlays: [
       {
         text: 'Crafted Spaces',
@@ -34,7 +34,7 @@ export const SECTIONS = [
     pinDuration: '250vh',
     basePath: 'https://sli-lg-jpegs.avlokai.com/play-area/ezgif-frame-',
     transition: 'hard-cut',
-    scrub: 0.3,
+    scrub: 0.25,
     textOverlays: [
       // triggerProgress: center of the visibility window for each microcopy word
       { text: 'Movement',  role: 'microcopy', triggerProgress: 0.2 },
@@ -48,7 +48,7 @@ export const SECTIONS = [
     pinDuration: '260vh',
     basePath: 'https://sli-lg-jpegs.avlokai.com/swimming/ezgif-frame-',
     transition: 'gradient-wipe',
-    scrub: 0.4,
+    scrub: 0.25,
     textOverlays: [
       // role: 'headline-wordbyword' → split into spans, staggered opacity reveal
       { text: 'Where Architecture Breathes', role: 'headline-wordbyword' },
@@ -60,8 +60,8 @@ export const SECTIONS = [
     pinDuration: '340vh',
     basePath: 'https://sli-lg-jpegs.avlokai.com/sky-to-walking/ezgif-frame-',
     transition: 'fade',
-    // Slowest scrub — sky-to-walking is the most cinematic section
-    scrub: 0.8,
+    // Uniform scrub across sections — was 0.8, caused visible lag/stutter
+    scrub: 0.25,
     textOverlays: [
       { text: 'Every Path', role: 'headline', fadeStart: 0.1, fadeEnd: 0.45 },
       { text: 'Leads Home', role: 'headline', fadeStart: 0.5,  fadeEnd: 0.9 },
@@ -75,7 +75,7 @@ export const MOBILE_FRAME_DENSITY = 2
 
 // How many frame images to preload immediately before the site becomes interactive.
 // Remaining frames load in background batches.
-export const EAGER_FRAME_COUNT = 20
+export const EAGER_FRAME_COUNT = 40
 
 // Background preload batch size — smaller = more responsive main thread
 export const PRELOAD_BATCH_SIZE = 10

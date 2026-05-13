@@ -164,8 +164,28 @@ export function getFrame(basePath, frameIndex, totalFrames) {
   // Snap to nearest loaded frame index
   const snapped = Math.round(frameIndex / density) * density
   const clamped = Math.max(0, Math.min(Math.round(snapped), totalFrames - 1))
-  const url = frameUrl(basePath, clamped)
-  return frameCache.get(url) ?? null
+
+  // Exact hit
+  const exact = frameCache.get(frameUrl(basePath, clamped))
+  if (exact) return exact
+
+  // Decode gap: walk outward up to ±MAX_NEIGHBOR_SEARCH to find nearest cached
+  // frame. Prefer earlier (already-scrolled-past) frame on tie. Keeps apparent
+  // motion smooth instead of holding a far-stale frame during fast scrolls.
+  const MAX_NEIGHBOR_SEARCH = 4
+  for (let offset = 1; offset <= MAX_NEIGHBOR_SEARCH; offset++) {
+    const back = clamped - offset * density
+    if (back >= 0) {
+      const hit = frameCache.get(frameUrl(basePath, back))
+      if (hit) return hit
+    }
+    const fwd = clamped + offset * density
+    if (fwd < totalFrames) {
+      const hit = frameCache.get(frameUrl(basePath, fwd))
+      if (hit) return hit
+    }
+  }
+  return null
 }
 
 // ─── Memory eviction ──────────────────────────────────────────────────────────

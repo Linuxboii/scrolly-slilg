@@ -43,16 +43,18 @@ export default function Home() {
     let unmounted = false
 
     async function bootstrap() {
-      // Preload first 20 hero frames immediately — blocks until done
+      // Preload first EAGER_FRAME_COUNT hero frames immediately — blocks until done
       await preloadSection(SECTIONS[0], 'immediate')
 
       if (unmounted) return
       setIsReady(true)
 
-      // Background preload remaining sections, staggered to not saturate bandwidth
-      preloadSection(SECTIONS[1], 'background', 0)
-      preloadSection(SECTIONS[2], 'background', 600)
-      preloadSection(SECTIONS[3], 'background', 1200)
+      // Fire eager preload for remaining sections in parallel so frames are
+      // decoded before the user scrolls to them. Browser caps concurrent
+      // requests per origin (~6) — no need to manually stagger.
+      preloadSection(SECTIONS[1], 'immediate')
+      preloadSection(SECTIONS[2], 'immediate')
+      preloadSection(SECTIONS[3], 'immediate')
     }
 
     bootstrap()

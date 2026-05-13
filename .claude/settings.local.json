@@ -6,7 +6,11 @@
       "Bash(mv play-area:*)",
       "Bash(mv swimming:*)",
       "Bash(mv sky-to-walking:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npm audit *)",
+      "Bash(npm ls *)",
+      "Bash(npm config *)",
+      "Bash(npm view *)"
     ]
   }
 }
